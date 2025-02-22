@@ -1,0 +1,273 @@
+{% if article.mastodon_url %}
+<div id="comments-section">
+    <hr>
+    <h2>Comments</h2>
+
+    <div id="add-comment-button-container" style="text-align: center; margin-bottom: 20px;">
+        <a href="{{ article.mastodon_url }}" target="_blank" rel="nofollow noopener noreferrer" class="add-comment-button">Add comment on Mastodon</a>
+    </div>
+
+    <div id="comments"></div>
+
+</div>
+
+<style>
+    /* Style for the main comments section container */
+    #comments-section {
+        margin-top: 20px;
+    }
+
+    /* Style for the horizontal rule above comments */
+    #comments-section hr {
+        margin-bottom: 10px;
+        border-top: 1px solid #ccc;
+    }
+
+    /* Style for the comments section header */
+    #comments-section h2 {
+        margin-bottom: 15px;
+    }
+
+    /* Style for emojis within comment author names */
+    .comment-author .emoji {
+        width: 1.2em;
+        height: 1.2em;
+        vertical-align: middle;
+        margin: 0 0.1em;
+    }
+
+    /* Style for emojis within comment content */
+    .comment-content .emoji {
+        width: 1.2em;
+        height: 1.2em;
+        vertical-align: middle;
+        margin: 0 0.1em;
+    }
+
+    /* Style for individual comment containers */
+    .comment {
+        display: flex;
+        margin-bottom: 20px;
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        background-color: #f9f9f9;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    /* Hover effect for comments */
+    .comment:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Style for the avatar container in comments */
+    .comment .avatar {
+        margin-right: 15px;
+    }
+
+    /* Style for avatar images in comments */
+    .comment .avatar img {
+        max-width: 60px;
+        max-height: 60px;
+        width: auto;
+        height: auto;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    /* Style for the comment content area */
+    .comment .content {
+        flex-grow: 1;
+    }
+
+    /* Style for the comment author name */
+    .comment-author {
+        font-weight: 600;
+        color: #333;
+        margin-right: 8px;
+        display: inline-block;
+    }
+
+    /* Style for the comment date */
+    .comment-date {
+        font-size: 0.85em;
+        color: #777;
+        margin-left: auto;
+        display: inline-block;
+    }
+
+    /* Style for the comment header, containing author and date */
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    /* Style for the main comment text content */
+    .comment-content {
+        margin-top: 0;
+        color: #444;
+        line-height: 1.6;
+        overflow-wrap: break-word;
+    }
+
+    /* Optional separator between consecutive comments */
+    .comment+.comment {
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+    }
+
+    /* Style for the "Add comment" button */
+    .add-comment-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #007bff; /* Example blue color, adjust to your theme */
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+    /* Hover effect for the "Add comment" button */
+    .add-comment-button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+    }
+</style>
+
+<script>
+    /* Function to replace emoji shortcodes with image elements */
+    function replaceEmoji(text, emojis) {
+        if (!emojis) return text;
+        let replaced = text;
+        emojis.forEach(emoji => {
+            const regex = new RegExp(`:${emoji.shortcode}:`, 'g');
+            replaced = replaced.replace(regex, `<img src="${emoji.url}" alt="${emoji.shortcode}" class="emoji">`);
+        });
+        return replaced;
+    }
+
+    /* Function to escape HTML characters for security */
+    function escapeHtml(unsafe) {
+        return unsafe.replace(/[&<>"']/g, m => {
+            switch (m) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case '\'': return '&#039;';
+                default: return m;
+            }
+        });
+    }
+
+    /* Asynchronous function to load comments from Mastodon API */
+    async function loadComments(mastodonPostUrl, container) {
+        if (!mastodonPostUrl || mastodonPostUrl === '{' + 'mastodon}') {
+            return;
+        }
+
+        const mastodonApiUrl = mastodonPostUrl.replace(/@[^\/]+/, 'api/v1/statuses') + '/context';
+
+        try {
+            const response = await fetch(mastodonApiUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            container.innerHTML = '';
+
+            if (!data.descendants || data.descendants.length === 0) {
+                container.innerHTML = "<p>No comments yet.</p>";
+                const addButtonContainer = document.getElementById('add-comment-button-container');
+                if (addButtonContainer) {
+                    addButtonContainer.style.display = 'block';
+                }
+                return;
+            }
+
+            data.descendants.forEach(status => {
+                const commentDiv = document.createElement('div');
+                commentDiv.classList.add('comment');
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.classList.add('avatar');
+                const avatarImg = document.createElement('img');
+                avatarImg.src = status.account.avatar_static;
+                avatarImg.alt = status.account.display_name + "'s avatar";
+                avatarDiv.appendChild(avatarImg);
+                commentDiv.appendChild(avatarDiv);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('content');
+
+                const headerDiv = document.createElement('div');
+                headerDiv.classList.add('comment-header');
+
+                const authorLink = document.createElement('a');
+                authorLink.classList.add('comment-author');
+                authorLink.href = status.account.url;
+                authorLink.target = "_blank";
+                authorLink.rel = "nofollow noopener noreferrer";
+                authorLink.innerHTML = replaceEmoji(escapeHtml(status.account.display_name), status.account.emojis);
+                headerDiv.appendChild(authorLink);
+
+                const dateLink = document.createElement('a');
+                dateLink.classList.add('comment-date');
+                dateLink.href = status.url;
+                dateLink.target = "_blank";
+                dateLink.rel = "nofollow noopener noreferrer";
+                dateLink.textContent = new Date(status.created_at).toLocaleString();
+                headerDiv.appendChild(dateLink);
+                contentDiv.appendChild(headerDiv);
+
+                const content = document.createElement('div');
+                content.classList.add('comment-content');
+                content.innerHTML = replaceEmoji(status.content, status.emojis);
+                contentDiv.appendChild(content);
+
+                commentDiv.appendChild(contentDiv);
+                container.appendChild(commentDiv);
+            });
+
+            const addButtonContainer = document.getElementById('add-comment-button-container');
+            if (addButtonContainer) {
+                addButtonContainer.style.display = 'block';
+            }
+
+
+        } catch (error) {
+            console.error("Error fetching or processing comments:", error);
+            container.innerHTML = "<p>Error loading comments.</p>";
+        }
+    }
+
+    /* Event listener to initialize comment loading after DOM is loaded */
+    document.addEventListener('DOMContentLoaded', () => {
+        const commentsDiv = document.getElementById('comments');
+        if (commentsDiv) {
+            const mastodonUrl = '{{ article.mastodon_url }}';
+            if (mastodonUrl) {
+                commentsDiv.innerHTML = "<p>Loading comments...</p>";
+                const addButtonContainer = document.getElementById('add-comment-button-container');
+                if (addButtonContainer) {
+                    addButtonContainer.style.display = 'none';
+                }
+                loadComments(mastodonUrl, commentsDiv);
+            } else {
+                console.warn("No Mastodon URL provided for this article.");
+                commentsDiv.innerHTML = "<p>No Mastodon URL provided for this article.</p>";
+                const addButtonContainer = document.getElementById('add-comment-button-container');
+                if (addButtonContainer) {
+                    addButtonContainer.style.display = 'block';
+                }
+            }
+        } else {
+            console.error("Comments div not found!");
+        }
+    });
+
+</script>
+{% endif %}

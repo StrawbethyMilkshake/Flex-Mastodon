@@ -1,4 +1,21 @@
-# Flex
+# Flex-Strawbethy
+
+A fork of the wonderful [Flex](https://github.com/alexandrevicenzi/Flex) Pelican Theme v2.6 by [@alexandrevicenzi](https://github.com/alexandrevicenzi) the only changes made are in the interest of adding the functionality to load comments from a post on a Mastodon server, this is useful if you post your articles to Mastodon and want a comments section without using a 3rd party service.
+
+Usage:
+
+Publish your article, post to your Mastodon server, copy the URL, add it to the article as shown below, and republish.
+
+In your articles simply add the URL to a `mastodon_url` line as shown below:
+```markdown
+Title: My Article
+Date: 1970-01-01 00:00
+Category: Cooking
+mastodon_url: https://mastodon.social/@Mastodon/113820526480156595
+```
+
+### Original Readme is as follows
+---
 
 The minimalist [Pelican](http://blog.getpelican.com/) theme.
 
