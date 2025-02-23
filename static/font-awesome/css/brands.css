@@ -1245,6 +1245,9 @@
 .fa-twitter-square:before {
   content: "\f081"; }
 
+.fa-mastodon:before {
+  content: "\f4f6"; }
+
 .fa-typo3:before {
   content: "\f42b"; }
 
